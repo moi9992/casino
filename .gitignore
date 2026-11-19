@@ -1,0 +1,4 @@
+.env
+portefeuille.json
+.venv/
+__pycache__/

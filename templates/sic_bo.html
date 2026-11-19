@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sic bo</title>
+</head>
+<body>
+    <h1>Bienvenue dans le Sic bo</h1>
+    <p>Solde : {{ solde }}</p>
+
+    <form action="" method="post">
+        <select name="choix_taille">
+            <option value="petit">Petit</option>
+            <option value="grand">Grand</option>
+        </select>
+        <input type="number" name="mise_taille" placeholder="mise sur la taille">
+        <input type="number" name="choix_total" placeholder="total visé(4 à 17)">
+        <input type="number" name="mise_total" placeholder="mise sur le total">
+        <input type="number" name="choix_numero" placeholder="numéro (1 à 6)">
+        <input type="number" name="mise_numero" placeholder="mise sur le numéro">
+        <input type="number" name="mise_triple" placeholder="mise sur un triple">
+        <button>Lancer les des</button>
+    </form>
+
+    {% if dee_tirer %}
+    <p>des tirer : {{ dee_tirer |  join(" | ") }}</p>
+    {% endif %}
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>

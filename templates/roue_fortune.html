@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roue de la fortune</title>
+</head>
+<body>
+    <h1>Bienvenue dans la roue de la fortune</h1>
+    <p>Solde : {{ solde }}</p>
+
+    <form action="" method="post">
+        <input type="number" name="mise">
+        <button name="choix" value="1">1</button>
+        <button name="choix" value="2">2</button>
+        <button name="choix" value="5">5</button>
+        <button name="choix" value="10">10</button>
+        <button name="choix" value="20">20</button>
+        <button name="choix" value="joker">Joker</button>
+        <button name="choix" value="logo">Logo</button>
+    </form>
+
+    {% if tirage %}
+        <p>tirage actuel : {{ tirage }}</p>
+    {% endif %}
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>

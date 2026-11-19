@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baccarat</title>
+</head>
+<body>
+    <h1>Bienvenue dans le Baccarat</h1>
+    <p>Solde : {{ solde }}</p>
+
+    <form action="" method="post">
+        <input type="number" name="mise">
+        <button name="pari" value="joueur">joueur</button>
+        <button name="pari" value="banquier">banquier</button>
+        <button name="pari" value="égalité">égalité</button>
+    </form>
+
+    {% if main_joueur %}
+    <p>Main du joueur : </p>
+        {% for carte in main_joueur %}
+        <p>{{ carte["valeur"]}} de {{ carte["couleur"] }}</p>
+        {% endfor %}
+    {% endif %}
+
+    {% if main_banquier %}
+    <p>Main du banquier : </p>
+        {% for carte in main_banquier %}
+        <p>{{ carte["valeur"]}} de {{ carte["couleur"] }}</p>
+        {% endfor %}
+    {% endif %}
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>

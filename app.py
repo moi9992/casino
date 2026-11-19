@@ -1,0 +1,296 @@
+import os
+
+from dotenv import load_dotenv
+from flask import Flask, redirect, render_template, request, session, url_for
+
+import baccarat
+import crash
+import keno
+import machine_a_sous
+import roue_fortune
+import sic_bo
+from cartes import créer_paquet
+from plus_ou_moins import bon_pari, calculer_multiplicateur
+from portefeuille import charger_solde, sauvegarder_solde
+
+load_dotenv()
+
+app = Flask(__name__)
+app.secret_key = os.environ["SECRET_KEY"]
+
+
+@app.route("/")
+def accueil():
+    solde = charger_solde()
+    return render_template("accueil.html", solde=solde)
+
+
+@app.route("/plus-ou-moins", methods=["GET", "POST"])
+def page_plus_ou_moins():
+    message = session.pop("message", None)
+    ancienne_carte = session.pop("ancienne_carte", None)
+    solde = charger_solde()
+    if "carte_actuelle" not in session:
+        session["carte_actuelle"] = créer_paquet().pop()
+    if request.method == "POST":
+        if request.form.get("action") == "commencer":
+            try:
+                mise = int(request.form["mise"])
+                if mise >= 1 and mise <= solde:
+                    solde -= mise
+                    sauvegarder_solde(solde)
+                    session["gain"] = mise
+                    session["carte_actuelle"] = créer_paquet().pop()
+                else:
+                    message = "mise invalide"
+            except ValueError:
+                message = "mise invalide"
+        elif request.form.get("action") == "encaisser" and "gain" in session:
+            solde += session["gain"]
+            sauvegarder_solde(solde)
+            message = "encaissé"
+            session.pop("gain")
+        elif "pari" in request.form and "gain" in session:
+            pari = request.form["pari"]
+            multiplicateur = calculer_multiplicateur(session["carte_actuelle"], pari)
+            if multiplicateur == 0:
+                message = "pari impossible"
+            else:
+                nouvelle_carte = créer_paquet().pop()
+                if bon_pari(session["carte_actuelle"], nouvelle_carte, pari):
+                    message = "gagné"
+                    session["gain"] = round(
+                        session["gain"] * multiplicateur,
+                        2,
+                    )
+                else:
+                    message = "perdu"
+                    session.pop("gain")
+                ancienne_carte = session["carte_actuelle"]
+                session["carte_actuelle"] = nouvelle_carte
+        session["message"] = message
+        session["ancienne_carte"] = ancienne_carte
+        return redirect(url_for("page_plus_ou_moins"))
+    return render_template(
+        "plus_ou_moins.html",
+        solde=solde,
+        carte=session["carte_actuelle"],
+        message=message,
+        ancienne_carte=ancienne_carte,
+        en_jeu="gain" in session,
+        gain=session.get("gain"),
+    )
+
+
+@app.route("/machine-a-sous", methods=["GET", "POST"])
+def page_machine_a_sous():
+    message = session.pop("message", None)
+    solde = charger_solde()
+    tirage = session.pop("tirage", None)
+    if request.method == "POST":
+        try:
+            mise = int(request.form["mise"])
+            if mise >= 1 and mise <= solde:
+                solde -= mise
+                tirage = machine_a_sous.tirer_rouleaux()
+                gain = mise * machine_a_sous.calculer_multiplicateur(tirage)
+                solde += gain
+                sauvegarder_solde(solde)
+                message = f"gain : {gain}"
+            else:
+                message = "mise invalide"
+        except ValueError:
+            message = "mise invalide"
+        session["message"] = message
+        session["tirage"] = tirage
+        return redirect(url_for("page_machine_a_sous"))
+    return render_template(
+        "machine_a_sous.html", solde=solde, tirage=tirage, message=message
+    )
+
+
+@app.route("/roue-de-la-fortune", methods=["GET", "POST"])
+def page_roue_de_la_fortune():
+    message = session.pop("message", None)
+    solde = charger_solde()
+    tirage = session.pop("tirage", None)
+    if request.method == "POST":
+        try:
+            mise = int(request.form["mise"])
+            choix = request.form["choix"]
+            if mise >= 1 and mise <= solde:
+                solde -= mise
+                tirage = roue_fortune.tourner_roue()
+                if choix == tirage:
+                    gain = mise + mise * roue_fortune.GAIN[choix]
+                else:
+                    gain = 0
+                solde += gain
+                sauvegarder_solde(solde)
+                message = f"gain : {gain}"
+            else:
+                message = "mise invalide"
+        except ValueError:
+            message = "mise invalide"
+        session["message"] = message
+        session["tirage"] = tirage
+        return redirect(url_for("page_roue_de_la_fortune"))
+    return render_template(
+        "roue_fortune.html", solde=solde, tirage=tirage, message=message
+    )
+
+
+@app.route("/crash", methods=["GET", "POST"])
+def page_crash():
+    message = session.pop("message", None)
+    solde = charger_solde()
+    crash_tire = session.pop("crash_tire", None)
+    if request.method == "POST":
+        try:
+            mise = int(request.form["mise"])
+            objectif = request.form["objectif"].replace(",", ".")
+            objectif = float(objectif)
+            if mise >= 1 and mise <= solde and crash.objectif_valide(objectif):
+                solde -= mise
+                crash_tire = crash.tirer_crash()
+                if objectif <= crash_tire:
+                    gain = round(mise * objectif, 2)
+                else:
+                    gain = 0
+                solde += gain
+                sauvegarder_solde(solde)
+                message = f"gain : {gain}"
+            else:
+                message = "objectif invalide"
+        except ValueError:
+            message = "objectif invalide"
+        session["message"] = message
+        session["crash_tire"] = crash_tire
+        return redirect(url_for("page_crash"))
+    return render_template(
+        "crash.html", solde=solde, crash_tire=crash_tire, message=message
+    )
+
+
+@app.route("/keno", methods=["GET", "POST"])
+def page_keno():
+    message = session.pop("message", None)
+    solde = charger_solde()
+    tirage = session.pop("tirage", None)
+    if request.method == "POST":
+        try:
+            mise = int(request.form["mise"])
+            numeros = keno.lire_numeros(request.form["numeros"])
+            if mise >= 1 and mise <= solde and numeros is not None:
+                solde -= mise
+                tirage = keno.tirer_numeros()
+                bons_numero = keno.compter_bons(numeros, tirage)
+                gain = mise * keno.GAIN[bons_numero]
+                solde += gain
+                sauvegarder_solde(solde)
+                message = f"bon numero : {bons_numero}, gain : {gain}"
+            else:
+                message = "choisissez une option valide"
+        except ValueError:
+            message = "choisissez une option valide"
+        session["message"] = message
+        session["tirage"] = tirage
+        return redirect(url_for("page_keno"))
+    return render_template("keno.html", solde=solde, tirage=tirage, message=message)
+
+
+@app.route("/baccarat", methods=["GET", "POST"])
+def page_baccarat():
+    message = session.pop("message", None)
+    main_joueur = session.pop("main_joueur", None)
+    main_banquier = session.pop("main_banquier", None)
+    solde = charger_solde()
+    if request.method == "POST":
+        try:
+            mise = int(request.form["mise"])
+            pari = request.form["pari"]
+            if mise >= 1 and mise <= solde and pari in baccarat.GAIN:
+                solde -= mise
+                main_joueur, main_banquier = baccarat.distribuer()
+                resultat = baccarat.trouver_resultat(main_joueur, main_banquier)
+                if pari == resultat:
+                    gain = round(mise * baccarat.GAIN[pari], 2)
+                    solde += gain
+                    message = f"pari : gagné, gain gagné :  {gain}"
+                elif resultat == "égalité":
+                    solde += mise
+                    message = "égalité : mise rendu"
+                else:
+                    message = "pari : perdu"
+                sauvegarder_solde(solde)
+            else:
+                message = "choisissez une option valide"
+        except ValueError:
+            message = "choisissez une option valide"
+        session["message"] = message
+        session["main_joueur"] = main_joueur
+        session["main_banquier"] = main_banquier
+        return redirect(url_for("page_baccarat"))
+    return render_template(
+        "baccarat.html",
+        solde=solde,
+        main_joueur=main_joueur,
+        main_banquier=main_banquier,
+        message=message,
+    )
+
+
+@app.route("/sic-bo", methods=["GET", "POST"])
+def page_sic_bo():
+    message = session.pop("message", None)
+    dee_tirer = session.pop("dee_tirer", None)
+    solde = charger_solde()
+    if request.method == "POST":
+        try:
+            mise_taille = int(request.form.get("mise_taille") or 0)
+            mise_total = int(request.form.get("mise_total") or 0)
+            mise_numero = int(request.form.get("mise_numero") or 0)
+            mise_triple = int(request.form.get("mise_triple") or 0)
+            mise_totale = mise_taille + mise_total + mise_numero + mise_triple
+            if (
+                mise_totale >= 1
+                and mise_totale <= solde
+                and min(mise_taille, mise_total, mise_numero, mise_triple) >= 0
+            ):
+                solde -= mise_totale
+                dee_tirer = sic_bo.lancer_des()
+                gain_total = 0
+                choix_taille = request.form.get("choix_taille")
+                if mise_taille > 0 and choix_taille == sic_bo.trouver_taille(dee_tirer):
+                    gain_total += mise_taille * 2
+                choix_total = int(request.form.get("choix_total") or 0)
+                if (
+                    mise_total > 0
+                    and sum(dee_tirer) == choix_total
+                    and choix_total in sic_bo.GAIN_TOTAL
+                ):
+                    gain_total += mise_total * sic_bo.GAIN_TOTAL[choix_total]
+                choix_numero = int(request.form.get("choix_numero") or 0)
+                if mise_numero > 0:
+                    gain_total += sic_bo.gain_numero(
+                        dee_tirer, choix_numero, mise_numero
+                    )
+                if mise_triple > 0 and sic_bo.est_triple(dee_tirer):
+                    gain_total += mise_triple * 31
+                solde += gain_total
+                sauvegarder_solde(solde)
+                message = f"vous avez gagné un total de : {gain_total}"
+            else:
+                message = "choisissez une option valide"
+        except ValueError:
+            message = "choisissez une option valide"
+        session["message"] = message
+        session["dee_tirer"] = dee_tirer
+        return redirect(url_for("page_sic_bo"))
+    return render_template(
+        "sic_bo.html", solde=solde, dee_tirer=dee_tirer, message=message
+    )
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

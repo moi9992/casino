@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plus ou moins</title>
+</head>
+<body>
+    <h1>Bienvenue dans le plus ou moins</h1>
+    <p>Solde : {{ solde }}</p>
+
+    {% if en_jeu %}
+    <p>Carte actuelle : {{ carte["valeur"] }} de {{ carte["couleur"] }}</p>
+    <p>Gain en jeu : {{ gain }}</p>
+    <form action="" method="post">
+        <button name="pari" value="haut">Haut</button>
+        <button name="pari" value="bas">Bas</button>
+        <button name="action" value="encaisser">Encaisser</button>
+    </form>
+    {% else %}
+    <form action="" method="post">
+        <input type="number" name="mise">
+        <button name="action" value="commencer">Miser</button>
+    </form>
+    {% endif %}
+
+    {% if message %}
+        {% if ancienne_carte %}
+        <p>Ancienne carte : {{ ancienne_carte["valeur"] }} de {{ ancienne_carte["couleur"] }}</p>
+        {% endif %}
+    <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>
