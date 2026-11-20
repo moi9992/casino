@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Craps</title>
+</head>
+<body>
+    <h1>Bienvenue dans le craps</h1>
+    <p>Solde : {{ solde }}</p>
+
+    {% if point is none %}
+
+    <form action="" method="post">
+        <input type="number" name="mise" placeholder="votre mise">
+        <select name="camp">
+            <option value="passer">passer</option>
+            <option value="ne pas passer">ne pas passer</option>
+        </select>
+        <button name="action" value="commencer">Miser</button>
+    </form>
+
+    {% else %}
+    
+    <p>point en cours : {{ point }}</p>
+
+    <form action="" method="post">
+        <input type="number" name="cote" placeholder="choisissez votre cote">
+        <button name="action" value="commencer">Miser</button>
+    </form>
+
+    {% endif %}
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>

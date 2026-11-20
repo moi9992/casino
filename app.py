@@ -5,6 +5,7 @@ from flask import Flask, redirect, render_template, request, session, url_for
 
 import baccarat
 import bingo
+import craps
 import crash
 import keno
 import machine_a_sous
@@ -386,6 +387,79 @@ def page_bingo():
         nb_boules=nb_boules,
         message=message,
     )
+
+
+@app.route("/craps", methods=["GET", "POST"])
+def page_craps():
+    message = session.pop("message", None)
+    point = session.get("point")
+    solde = charger_solde()
+    if request.method == "POST":
+        if "camp" in request.form:
+            try:
+                mise = int(request.form.get("mise"))
+                camp = request.form.get("camp")
+                if mise >= 1 and mise <= solde and camp in ["passer", "ne pas passer"]:
+                    solde -= mise
+                    total = craps.lancer_des()
+                    resultat = craps.premier_lancer(total)
+                    if resultat == "point":
+                        session["point"] = total
+                        session["mise"] = mise
+                        session["camp"] = camp
+                        sauvegarder_solde(solde)
+                        message = f"point du joueur : {total}"
+                    else:
+                        resultat = craps.appliquer_camp(resultat, camp)
+                        if resultat == "gagne":
+                            gain = mise * 2
+                            solde += gain
+                            message = f"gain gagné : {gain}, dés tirer : {total}"
+                        elif resultat == "egalite":
+                            solde += mise
+                            message = f"égalité mise rendue, dés tirer : {total}"
+                        else:
+                            message = f"perdu, dés tirer : {total}"
+                        sauvegarder_solde(solde)
+                else:
+                    message = "choisissez une option valide"
+            except ValueError:
+                message = "choisissez une option valide"
+        elif "cote" in request.form and "point" in session:
+            try:
+                mise = session.get("mise")
+                camp = session.get("camp")
+                cote = int(request.form.get("cote") or 0)
+                cote_max = craps.calculer_cote_max(mise, point, solde, camp)
+                if cote >= 0 and cote <= cote_max:
+                    solde -= cote
+                    resultat = craps.jouer_le_point(point)
+                    resultat = craps.appliquer_camp(resultat, camp)
+                    if resultat == "gagne":
+                        gain = mise * 2
+                        solde += gain
+                        message = f"gain gagné : {gain}"
+                        if cote > 0:
+                            if camp == "passer":
+                                paiement = craps.PAIEMENT_COTE[point]
+                            else:
+                                paiement = craps.PAIEMENT_COTE_NE_PAS_PASSER[point]
+                            gain_cote = round(cote * paiement, 2)
+                            solde += cote + gain_cote
+                            message += f", gain de la cote : {gain_cote}"
+                    else:
+                        message = "perdu"
+                    sauvegarder_solde(solde)
+                    session.pop("point")
+                    session.pop("mise")
+                    session.pop("camp")
+                else:
+                    message = "choisissez une option valide"
+            except ValueError:
+                message = "choisissez une option valide"
+        session["message"] = message
+        return redirect(url_for("page_craps"))
+    return render_template("craps.html", solde=solde, point=point, message=message)
 
 
 if __name__ == "__main__":

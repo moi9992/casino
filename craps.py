@@ -25,6 +25,28 @@ PAIEMENT_COTE_NE_PAS_PASSER = {
 COTE_MAX_NE_PAS_PASSER = 6
 
 
+def appliquer_camp(resultat, camp):
+    if camp == "passer" and resultat == "douze":
+        resultat = "perdu"
+    elif camp == "ne pas passer":
+        if resultat == "douze":
+            resultat = "egalite"
+        elif resultat == "gagne":
+            resultat = "perdu"
+        elif resultat == "perdu":
+            resultat = "gagne"
+    return resultat
+
+
+def calculer_cote_max(mise, point, solde, camp):
+    if camp == "passer":
+        cote_max = mise * COTE_MAX[point]
+    else:
+        cote_max = mise * COTE_MAX_NE_PAS_PASSER
+    cote_max = min(solde, cote_max)
+    return cote_max
+
+
 def demander_camp():
     while True:
         reponse = input("passer ou ne pas passer : ").strip().lower()
@@ -35,11 +57,7 @@ def demander_camp():
 
 
 def demander_cote(mise, point, solde, camp):
-    if camp == "passer":
-        cote_max = mise * COTE_MAX[point]
-    else:
-        cote_max = mise * COTE_MAX_NE_PAS_PASSER
-    cote_max = min(solde, cote_max)
+    cote_max = calculer_cote_max(mise, point, solde, camp)
     while True:
         reponse = input(
             f"choisissez la valeur de votre cote allant de 0 à {cote_max} : "
@@ -54,6 +72,18 @@ def demander_cote(mise, point, solde, camp):
             print("erreur")
 
 
+def jouer_le_point(point):
+    while True:
+        total = lancer_des()
+        if total == point:
+            resultat = "gagne"
+            break
+        elif total == 7:
+            resultat = "perdu"
+            break
+    return resultat
+
+
 def lancer_des():
     dee_tirer = []
 
@@ -64,6 +94,18 @@ def lancer_des():
     total = sum(dee_tirer)
 
     return total
+
+
+def premier_lancer(total):
+    if total == 7 or total == 11:
+        resultat = "gagne"
+    elif total == 2 or total == 3:
+        resultat = "perdu"
+    elif total == 12:
+        resultat = "douze"
+    else:
+        resultat = "point"
+    return resultat
 
 
 def jouer():
@@ -83,36 +125,16 @@ def jouer():
 
             total = lancer_des()
             print(total)
-            if total == 7 or total == 11:
-                resultat = "gagne"
-            elif total == 2 or total == 3:
-                resultat = "perdu"
-            elif total == 12:
-                resultat = "douze"
-            else:
+
+            resultat = premier_lancer(total)
+
+            if resultat == "point":
                 point = total
-                print("point : ", point)
                 cote = demander_cote(mise, point, solde, camp)
                 solde -= cote
-                while True:
-                    total = lancer_des()
-                    print(total)
-                    if total == point:
-                        resultat = "gagne"
-                        break
-                    elif total == 7:
-                        resultat = "perdu"
-                        break
+                resultat = jouer_le_point(point)
 
-            if camp == "passer" and resultat == "douze":
-                resultat = "perdu"
-            elif camp == "ne pas passer":
-                if resultat == "douze":
-                    resultat = "egalite"
-                elif resultat == "gagne":
-                    resultat = "perdu"
-                elif resultat == "perdu":
-                    resultat = "gagne"
+            resultat = appliquer_camp(resultat, camp)
 
             if resultat == "gagne":
                 gain = mise * 2
