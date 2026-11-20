@@ -8,6 +8,7 @@ import crash
 import keno
 import machine_a_sous
 import roue_fortune
+import roulette
 import sic_bo
 from cartes import créer_paquet
 from plus_ou_moins import bon_pari, calculer_multiplicateur
@@ -290,6 +291,64 @@ def page_sic_bo():
     return render_template(
         "sic_bo.html", solde=solde, dee_tirer=dee_tirer, message=message
     )
+
+
+@app.route("/roulette", methods=["GET", "POST"])
+def page_roulette():
+    message = session.pop("message", None)
+    numero = session.pop("numero", None)
+    solde = charger_solde()
+    if request.method == "POST":
+        try:
+            mise_couleur = int(request.form.get("mise_couleur") or 0)
+            mise_numero = int(request.form.get("mise_numero") or 0)
+            mise_parite = int(request.form.get("mise_parite") or 0)
+            mise_moitie = int(request.form.get("mise_moitie") or 0)
+            mise_douzaine = int(request.form.get("mise_douzaine") or 0)
+            mise_total = (
+                mise_couleur + mise_numero + mise_parite + mise_moitie + mise_douzaine
+            )
+            if (
+                mise_total >= 1
+                and mise_total <= solde
+                and min(
+                    mise_couleur, mise_numero, mise_parite, mise_moitie, mise_douzaine
+                )
+                >= 0
+            ):
+                solde -= mise_total
+                numero = roulette.lancer_bille()
+                gain_total = 0
+                choix_couleur = request.form.get("choix_couleur")
+                if mise_couleur > 0 and choix_couleur == roulette.trouver_couleur(
+                    numero
+                ):
+                    gain_total += mise_couleur * 2
+                choix_numero = int(request.form.get("choix_numero") or 0)
+                if mise_numero > 0 and choix_numero == numero:
+                    gain_total += mise_numero * 36
+                choix_parite = request.form.get("choix_parite")
+                if mise_parite > 0 and choix_parite == roulette.trouver_parite(numero):
+                    gain_total += mise_parite * 2
+                choix_moitie = request.form.get("choix_moitie")
+                if mise_moitie > 0 and choix_moitie == roulette.trouver_moitie(numero):
+                    gain_total += mise_moitie * 2
+                choix_douzaine = int(request.form.get("choix_douzaine") or 0)
+                if mise_douzaine > 0 and choix_douzaine == roulette.trouver_douzaine(
+                    numero
+                ):
+                    gain_total += mise_douzaine * 3
+                solde += gain_total
+                sauvegarder_solde(solde)
+                message = f"vous avez gagné un total de : {gain_total}"
+            else:
+                message = "choisissez une option valide"
+        except ValueError:
+            message = "choisissez une option valide"
+        session["message"] = message
+        session["numero"] = numero
+        return redirect(url_for("page_roulette"))
+    return render_template("roulette.html", solde=solde, numero=numero, message=message)
 
 
 if __name__ == "__main__":

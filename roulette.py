@@ -51,6 +51,53 @@ def demander_pari(options):
             print("choisissez une option valide")
 
 
+def lancer_bille():
+    numero = random.randint(0, 36)
+    return numero
+
+
+def trouver_couleur(numero):
+    if numero in NUMEROS_ROUGES:
+        couleur = "rouge"
+    elif numero == 0:
+        couleur = "vert"
+    else:
+        couleur = "noir"
+    return couleur
+
+
+def trouver_douzaine(numero):
+    if numero == 0:
+        douzaine = 0
+    elif numero >= 1 and numero <= 12:
+        douzaine = 1
+    elif numero >= 13 and numero <= 24:
+        douzaine = 2
+    else:
+        douzaine = 3
+    return douzaine
+
+
+def trouver_moitie(numero):
+    if numero == 0:
+        moitie = 0
+    elif numero >= 1 and numero <= 18:
+        moitie = "manque"
+    else:
+        moitie = "passe"
+    return moitie
+
+
+def trouver_parite(numero):
+    if numero == 0:
+        parite = 0
+    elif numero % 2 == 0:
+        parite = "pair"
+    else:
+        parite = "impair"
+    return parite
+
+
 def jouer():
     solde = charger_solde()
 
@@ -114,14 +161,9 @@ def jouer():
                 elif choix == "lancer":
                     break
 
-            numero = random.randint(0, 36)
+            numero = lancer_bille()
 
-            if numero in NUMEROS_ROUGES:
-                couleur = "rouge"
-            elif numero == 0:
-                couleur = "vert"
-            else:
-                couleur = "noir"
+            couleur = trouver_couleur(numero)
 
             gain_total = 0
             print(numero, couleur)
@@ -146,12 +188,7 @@ def jouer():
                 else:
                     print("numéro : perdu")
 
-            if numero == 0:
-                parite = 0
-            elif numero % 2 == 0:
-                parite = "pair"
-            else:
-                parite = "impair"
+            parite = trouver_parite(numero)
 
             if paire_impair is not None:
                 if paire_impair == parite:
@@ -163,12 +200,7 @@ def jouer():
                 else:
                     print("parité : perdu")
 
-            if numero == 0:
-                moitie = 0
-            elif numero >= 1 and numero <= 18:
-                moitie = "manque"
-            else:
-                moitie = "passe"
+            moitie = trouver_moitie(numero)
 
             if manque_passe is not None:
                 if manque_passe == moitie:
@@ -180,14 +212,7 @@ def jouer():
                 else:
                     print(manque_passe, ": perdu")
 
-            if numero == 0:
-                douzaine = 0
-            elif numero >= 1 and numero <= 12:
-                douzaine = 1
-            elif numero >= 13 and numero <= 24:
-                douzaine = 2
-            else:
-                douzaine = 3
+            douzaine = trouver_douzaine(numero)
 
             if choix_douzaine is not None:
                 if choix_douzaine == douzaine:
