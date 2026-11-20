@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
 
 import baccarat
+import bingo
 import crash
 import keno
 import machine_a_sous
@@ -349,6 +350,42 @@ def page_roulette():
         session["numero"] = numero
         return redirect(url_for("page_roulette"))
     return render_template("roulette.html", solde=solde, numero=numero, message=message)
+
+
+@app.route("/bingo", methods=["GET", "POST"])
+def page_bingo():
+    message = session.pop("message", None)
+    grille = session.pop("grille", None)
+    nb_boules = session.pop("nb_boules", None)
+    solde = charger_solde()
+    if request.method == "POST":
+        try:
+            mise = int(request.form.get("mise"))
+            if mise >= 1 and mise <= solde:
+                solde -= mise
+                grille = bingo.creer_grille()
+                nb_boules = bingo.tirer_jusqu_au_bingo(grille)
+                gain = mise * bingo.calculer_multiplicateur(nb_boules)
+                solde += gain
+                sauvegarder_solde(solde)
+                message = (
+                    f"nombre de boule nécessaire au bingo : {nb_boules}, gain : {gain}"
+                )
+            else:
+                message = "choisissez une option valide"
+        except ValueError:
+            message = "choisissez une option valide"
+        session["message"] = message
+        session["grille"] = grille
+        session["nb_boules"] = nb_boules
+        return redirect(url_for("page_bingo"))
+    return render_template(
+        "bingo.html",
+        solde=solde,
+        grille=grille,
+        nb_boules=nb_boules,
+        message=message,
+    )
 
 
 if __name__ == "__main__":

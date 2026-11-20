@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo</title>
+</head>
+<body>
+    <h1>Bienvenue dans le bingo</h1>
+    <p>Solde : {{ solde }}</p>
+
+    <form action="" method="post">
+        <input type="number" name="mise" placeholder="votre mise">
+        <button name="action" value="commencer">Miser</button>
+    </form>
+
+    {% if grille is not none %}
+        <table>
+            {% for ligne in grille %}
+            <tr>
+                {% for case in ligne%}
+                <td>
+                    {{ case }}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>
