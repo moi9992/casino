@@ -14,6 +14,7 @@ import mine
 import roue_fortune
 import roulette
 import sic_bo
+import video_poker
 from cartes import créer_paquet
 from plus_ou_moins import bon_pari, calculer_multiplicateur
 from portefeuille import charger_solde, sauvegarder_solde
@@ -537,6 +538,54 @@ def page_mines():
         session["message"] = message
         return redirect(url_for("page_mines"))
     return render_template("mines.html", solde=solde, partie=partie, message=message)
+
+
+@app.route("/video-poker", methods=["GET", "POST"])
+def page_video_poker():
+    message = session.pop("message", None)
+    main_finale = session.pop("main_finale", None)
+    solde = charger_solde()
+    partie_id = session.get("partie_video_poker")
+    partie = parties.get(partie_id)
+    if request.method == "POST":
+        if "mise" in request.form:
+            try:
+                mise = int(request.form.get("mise"))
+                if mise >= 1 and mise <= solde:
+                    solde -= mise
+                    sauvegarder_solde(solde)
+                    paquet = créer_paquet()
+                    main = video_poker.distribuer(paquet)
+                    partie_id = secrets.token_hex(16)
+                    parties[partie_id] = {"paquet": paquet, "main": main, "mise": mise}
+                    session["partie_video_poker"] = partie_id
+                else:
+                    message = "choisissez une option valide"
+            except ValueError:
+                message = "choisissez une option valide"
+        elif request.form.get("action") in ["echanger", "tout"] and partie is not None:
+            if request.form.get("action") == "tout":
+                choix = ["tout"]
+            else:
+                choix = request.form.getlist("garder")
+            video_poker.echanger_carte(partie["main"], partie["paquet"], choix)
+            combinaison = video_poker.evaluer_video_poker(partie["main"])
+            gain = partie["mise"] * video_poker.GAIN[combinaison]
+            solde += gain
+            sauvegarder_solde(solde)
+            message = f"combinaison : {combinaison}, vous avez gagné : {gain}"
+            session["main_finale"] = partie["main"]
+            parties.pop(partie_id)
+            session.pop("partie_video_poker")
+        session["message"] = message
+        return redirect(url_for("page_video_poker"))
+    return render_template(
+        "video_poker.html",
+        solde=solde,
+        partie=partie,
+        main_finale=main_finale,
+        message=message,
+    )
 
 
 if __name__ == "__main__":

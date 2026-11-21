@@ -16,6 +16,37 @@ GAIN = {
 }
 
 
+def distribuer(paquet):
+    main_joueur = []
+
+    for i in range(5):
+        main_joueur.append(paquet.pop())
+    return main_joueur
+
+
+def echanger_carte(main, paquet, choix):
+    for i in range(5):
+        if (str(i + 1)) not in choix and "tout" not in choix:
+            main[i] = paquet.pop()
+
+
+def evaluer_video_poker(main):
+    combinaison = evaluer_main(main)
+
+    if combinaison == "paire":
+        paire_haute = False
+        valeurs = []
+        for carte in main:
+            valeurs.append(carte["valeur"])
+        for valeur in valeurs:
+            if rang(valeur) >= 11 and valeurs.count(valeur) == 2:
+                paire_haute = True
+        if paire_haute == False:
+            combinaison = "rien"
+
+    return combinaison
+
+
 def jouer():
     solde = charger_solde()
 
@@ -30,33 +61,17 @@ def jouer():
             solde = solde - mise
             paquet = créer_paquet()
 
-            main_joueur = []
-
-            for i in range(5):
-                main_joueur.append(paquet.pop())
+            main_joueur = distribuer(paquet)
 
             afficher_main(main_joueur)
 
             choix = input("quelles cartes gardez-vous ou tout ? : ").strip().split()
 
-            for i in range(5):
-                if (str(i + 1)) not in choix and "tout" not in choix:
-                    main_joueur[i] = paquet.pop()
+            echanger_carte(main_joueur, paquet, choix)
 
             afficher_main(main_joueur)
 
-            combinaison = evaluer_main(main_joueur)
-
-            if combinaison == "paire":
-                paire_haute = False
-                valeurs = []
-                for carte in main_joueur:
-                    valeurs.append(carte["valeur"])
-                for valeur in valeurs:
-                    if rang(valeur) >= 11 and valeurs.count(valeur) == 2:
-                        paire_haute = True
-                if paire_haute == False:
-                    combinaison = "rien"
+            combinaison = evaluer_video_poker(main_joueur)
 
             print(combinaison)
             gain = mise * GAIN[combinaison]

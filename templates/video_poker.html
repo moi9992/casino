@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video poker</title>
+</head>
+<body>
+    <h1>Bienvenue dans le video poker</h1>
+    <p>Solde : {{ solde }}</p>
+
+    {% if partie is none %}
+
+    <form action="" method="post">
+        <input type="number" name="mise" placeholder="votre mise">
+        <button name="action" value="commencer">Miser</button>
+    </form>
+
+    {% else %}
+
+    <form action="" method="post">
+        {% for i in range(partie["main"] | length) %}
+        <p>
+            <input type="checkbox" name="garder" value="{{ i + 1 }}">
+            Carte actuelle : {{ partie["main"][i]["valeur"] }} de {{ partie["main"][i]["couleur"] }}
+        </p>
+        {% endfor %}
+        <button name="action" value="echanger">Échanger</button>
+        <button name="action" value="tout">Tout garder</button>
+    </form>
+
+    {% endif %} 
+
+    {% if main_finale %}
+        {% for carte in main_finale %}
+        <p>{{ carte["valeur"] }} de {{ carte["couleur"] }}</p>
+        {% endfor %}
+    {% endif %}
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>
