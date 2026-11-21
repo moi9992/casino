@@ -1,4 +1,5 @@
 import os
+import secrets
 
 from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
@@ -9,6 +10,7 @@ import craps
 import crash
 import keno
 import machine_a_sous
+import mine
 import roue_fortune
 import roulette
 import sic_bo
@@ -20,6 +22,8 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
+
+parties = {}
 
 
 @app.route("/")
@@ -460,6 +464,79 @@ def page_craps():
         session["message"] = message
         return redirect(url_for("page_craps"))
     return render_template("craps.html", solde=solde, point=point, message=message)
+
+
+@app.route("/mines", methods=["GET", "POST"])
+def page_mines():
+    message = session.pop("message", None)
+    solde = charger_solde()
+    partie_id = session.get("partie_mines")
+    partie = parties.get(partie_id)
+    if request.method == "POST":
+        if "mise" in request.form:
+            try:
+                mise = int(request.form.get("mise"))
+                if mise >= 1 and mise <= solde:
+                    solde -= mise
+                    sauvegarder_solde(solde)
+                    grille = mine.creer_grille("?")
+                    bombe = mine.creer_grille("V")
+                    mine.placer_bombe(bombe)
+                    partie_id = secrets.token_hex(16)
+                    parties[partie_id] = {
+                        "grille": grille,
+                        "bombe": bombe,
+                        "gain": mise,
+                        "cases_trouvees": 0,
+                    }
+                    session["partie_mines"] = partie_id
+                else:
+                    message = "choisissez une option valide"
+            except ValueError:
+                message = "choisissez une option valide"
+        elif "case" in request.form and partie is not None:
+            try:
+                case = request.form.get("case")
+                morceaux = case.split("-")
+                ligne = int(morceaux[0])
+                colonne = int(morceaux[1])
+                if ligne in range(mine.TAILLE) and colonne in range(mine.TAILLE):
+                    if partie["grille"][ligne][colonne] == "✅":
+                        message = "case déjà choisie"
+                    elif partie["bombe"][ligne][colonne] == "B":
+                        message = "perdu"
+                        parties.pop(partie_id)
+                        session.pop("partie_mines")
+                    else:
+                        partie["grille"][ligne][colonne] = "✅"
+                        partie["gain"] = round(
+                            partie["gain"]
+                            * mine.calculer_multiplicateur(partie["cases_trouvees"]),
+                            2,
+                        )
+                        partie["cases_trouvees"] += 1
+                        if (
+                            partie["cases_trouvees"]
+                            == mine.TAILLE * mine.TAILLE - mine.NB_BOMBES
+                        ):
+                            solde += partie["gain"]
+                            sauvegarder_solde(solde)
+                            message = f"victoire vous avez gagné : {partie['gain']}"
+                            parties.pop(partie_id)
+                            session.pop("partie_mines")
+                else:
+                    message = "case invalide"
+            except (ValueError, IndexError):
+                message = "choisissez une option valide"
+        elif request.form.get("action") == "encaisser" and partie is not None:
+            solde += partie["gain"]
+            sauvegarder_solde(solde)
+            message = f"vous avez gagné : {partie['gain']}"
+            parties.pop(partie_id)
+            session.pop("partie_mines")
+        session["message"] = message
+        return redirect(url_for("page_mines"))
+    return render_template("mines.html", solde=solde, partie=partie, message=message)
 
 
 if __name__ == "__main__":

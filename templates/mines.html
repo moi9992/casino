@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mine</title>
+</head>
+<body>
+    <h1>Bienvenue dans la mine</h1>
+    <p>Solde : {{ solde }}</p>
+
+    {% if partie is none %}
+
+    <form action="" method="post">
+        <input type="number" name="mise" placeholder="votre mise">
+        <button name="action" value="commencer">Miser</button>
+    </form>
+
+    {% else %}
+    
+    <p>gain en jeu  : {{ partie["gain"] }}</p>
+
+    <form action="" method="post">
+        <table>
+            {% for i in range(partie["grille"] | length) %}
+            <tr>
+                {% for j in range(partie["grille"][i] | length) %}
+                <td>
+                    <button name="case" value="{{i}}-{{j}}">{{partie["grille"][i][j]}}</button>
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+        <button name="action" value="encaisser">Encaisser</button>
+    </form>
+
+    {% endif %} 
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>
