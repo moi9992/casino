@@ -29,6 +29,23 @@ GAIN = {
 }
 
 
+def calculer_gain(main_joueur, main_croupier, mise):
+    relance = mise * 2
+
+    if not croupier_qualifie(main_croupier):
+        gain = mise * 2 + relance
+        return "croupier non qualifié", gain
+
+    resultat = comparer_mains(main_joueur, main_croupier)
+    if resultat == "joueur":
+        gain = mise * 2 + relance * GAIN[evaluer_main(main_joueur)]
+    elif resultat == "croupier":
+        gain = 0
+    else:
+        gain = mise + relance
+    return resultat, gain
+
+
 def croupier_qualifie(main):
     if evaluer_main(main) != "rien":
         return True
@@ -54,6 +71,16 @@ def comparer_mains(main_joueur, main_croupier):
             return "croupier"
         elif rangs_tries(main_croupier) == rangs_tries(main_joueur):
             return "egalite"
+
+
+def distribuer(paquet):
+    main_joueur = []
+    main_croupier = []
+
+    for i in range(5):
+        main_joueur.append(paquet.pop())
+        main_croupier.append(paquet.pop())
+    return main_joueur, main_croupier
 
 
 def rangs_tries(main):
@@ -93,12 +120,7 @@ def jouer():
             solde = solde - mise
             paquet = créer_paquet()
 
-            main_joueur = []
-            main_croupier = []
-
-            for i in range(5):
-                main_joueur.append(paquet.pop())
-                main_croupier.append(paquet.pop())
+            main_joueur, main_croupier = distribuer(paquet)
 
             print("main du joueur : ")
             afficher_main(main_joueur)
@@ -122,24 +144,8 @@ def jouer():
             print("main complète du croupier")
             afficher_main(main_croupier)
 
-            if not croupier_qualifie(main_croupier):
-                print("joueur : gagne")
-                gain = mise * 2 + relance
-                solde += gain
-                print("gain gagné : ", gain)
-                sauvegarder_solde(solde)
-                continue
-
-            resultat = comparer_mains(main_joueur, main_croupier)
-            if resultat == "joueur":
-                print("joueur : gagne")
-                gain = mise * 2 + relance * GAIN[evaluer_main(main_joueur)]
-            elif resultat == "croupier":
-                print("croupier : gagne")
-                gain = 0
-            else:
-                print("égalité")
-                gain = mise + relance
+            resultat, gain = calculer_gain(main_joueur, main_croupier, mise)
+            print(resultat)
 
             solde += gain
             print("gain gagné : ", gain)

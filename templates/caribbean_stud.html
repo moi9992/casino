@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caribbean stud</title>
+</head>
+<body>
+    <h1>Bienvenue dans le caribbean stud</h1>
+    <p>Solde : {{ solde }}</p>
+
+    {% if partie is none %}
+
+    <form action="" method="post">
+        <input type="number" name="mise" placeholder="votre mise">
+        <button name="action" value="commencer">Miser</button>
+    </form>
+
+    {% else %}
+
+    <form action="" method="post">
+        {% for i in range(partie["main_joueur"] | length) %}
+        <p>
+            Carte actuelle : {{ partie["main_joueur"][i]["valeur"] }} de {{ partie["main_joueur"][i]["couleur"] }}
+        </p>
+        {% endfor %}
+        <p>
+            Carte actuelle du croupier : {{partie["main_croupier"][0]["valeur"]}} de {{partie["main_croupier"][0]["couleur"]}}
+        </p>
+        <button name="action" value="jouer">Jouer</button>
+        <button name="action" value="coucher">Se coucher</button>
+    </form>
+
+    {% endif %} 
+
+    {% if main_croupier_final %}
+        {% for carte in main_croupier_final %}
+        <p>{{ carte["valeur"] }} de {{ carte["couleur"] }}</p>
+        {% endfor %}
+    {% endif %}
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>

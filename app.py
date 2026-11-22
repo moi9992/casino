@@ -6,6 +6,7 @@ from flask import Flask, redirect, render_template, request, session, url_for
 
 import baccarat
 import bingo
+import caribbean_stud
 import craps
 import crash
 import keno
@@ -584,6 +585,63 @@ def page_video_poker():
         solde=solde,
         partie=partie,
         main_finale=main_finale,
+        message=message,
+    )
+
+
+@app.route("/caribbean-stud", methods=["GET", "POST"])
+def page_caribbean_stud():
+    message = session.pop("message", None)
+    main_croupier_final = session.pop("main_croupier_final", None)
+    solde = charger_solde()
+    partie_id = session.get("partie_caribbean_stud")
+    partie = parties.get(partie_id)
+    if request.method == "POST":
+        if "mise" in request.form:
+            try:
+                mise = int(request.form.get("mise"))
+                if mise >= 1 and mise <= solde // 3:
+                    solde -= mise
+                    sauvegarder_solde(solde)
+                    paquet = caribbean_stud.créer_paquet()
+                    main_joueur, main_croupier = caribbean_stud.distribuer(paquet)
+                    partie_id = secrets.token_hex(16)
+                    parties[partie_id] = {
+                        "main_joueur": main_joueur,
+                        "main_croupier": main_croupier,
+                        "mise": mise,
+                    }
+                    session["partie_caribbean_stud"] = partie_id
+                else:
+                    message = "choisissez une option valide"
+            except ValueError:
+                message = "choisissez une option valide"
+        elif request.form.get("action") == "coucher" and partie is not None:
+            message = "mise perdu"
+            parties.pop(partie_id)
+            session.pop("partie_caribbean_stud")
+        elif request.form.get("action") == "jouer" and partie is not None:
+            relance = partie["mise"] * 2
+            if relance <= solde:
+                solde -= relance
+                resultat, gain = caribbean_stud.calculer_gain(
+                    partie["main_joueur"], partie["main_croupier"], partie["mise"]
+                )
+                solde += gain
+                message = f"résultat : {resultat}, vous avez gagné : {gain}"
+                session["main_croupier_final"] = partie["main_croupier"]
+                parties.pop(partie_id)
+                session.pop("partie_caribbean_stud")
+                sauvegarder_solde(solde)
+            else:
+                message = "solde insuffisant pour relancer"
+        session["message"] = message
+        return redirect(url_for("page_caribbean_stud"))
+    return render_template(
+        "caribbean_stud.html",
+        solde=solde,
+        partie=partie,
+        main_croupier_final=main_croupier_final,
         message=message,
     )
 
