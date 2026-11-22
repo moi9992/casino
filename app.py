@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
 
 import baccarat
+import blackjack
 import bingo
 import caribbean_stud
 import craps
@@ -642,6 +643,125 @@ def page_caribbean_stud():
         solde=solde,
         partie=partie,
         main_croupier_final=main_croupier_final,
+        message=message,
+    )
+
+
+@app.route("/blackjack", methods=["GET", "POST"])
+def page_blackjack():
+    message = session.pop("message", None)
+    main_croupier_final = session.pop("main_croupier_final", None)
+    mains_final = session.pop("mains_final", None)
+    solde = charger_solde()
+    partie_id = session.get("partie_blackjack")
+    partie = parties.get(partie_id)
+    if request.method == "POST":
+        if "mise" in request.form:
+            try:
+                mise = int(request.form.get("mise"))
+                if mise >= 1 and mise <= solde:
+                    solde -= mise
+                    sauvegarder_solde(solde)
+                    paquet = blackjack.créer_paquet()
+                    main_joueur, main_croupier = blackjack.distribuer(paquet)
+                    resultat = blackjack.verifier_blackjacks(main_joueur, main_croupier)
+                    if resultat is not None:
+                        gain = round(mise * blackjack.GAIN[resultat], 2)
+                        solde += gain
+                        sauvegarder_solde(solde)
+                        message = f"{resultat} vous avez gagné : {gain}"
+                        session["main_croupier_final"] = main_croupier
+                        session["mains_final"] = [main_joueur]
+                    else:
+                        partie_id = secrets.token_hex(16)
+                        parties[partie_id] = {
+                            "paquet": paquet,
+                            "main_croupier": main_croupier,
+                            "mains": [main_joueur],
+                            "mises": [mise],
+                            "as_splittes": [False],
+                            "en_cours": 0,
+                        }
+                        session["partie_blackjack"] = partie_id
+                else:
+                    message = "choisissez une option valide"
+            except ValueError:
+                message = "choisissez une option valide"
+        elif request.form.get("action") == "stop" and partie is not None:
+            partie["en_cours"] += 1
+        elif request.form.get("action") == "hit" and partie is not None:
+            main = partie["mains"][partie["en_cours"]]
+            main.append(partie["paquet"].pop())
+            if blackjack.points_main(main) > 21:
+                partie["en_cours"] += 1
+        elif request.form.get("action") == "doubler" and partie is not None:
+            main = partie["mains"][partie["en_cours"]]
+            i = partie["en_cours"]
+            if len(main) == 2 and solde >= partie["mises"][i]:
+                solde -= partie["mises"][i]
+                sauvegarder_solde(solde)
+                partie["mises"][i] = partie["mises"][i] * 2
+                main.append(partie["paquet"].pop())
+                partie["en_cours"] += 1
+            else:
+                message = "solde insuffisant pour doubler"
+        elif request.form.get("action") == "split" and partie is not None:
+            main = partie["mains"][partie["en_cours"]]
+            i = partie["en_cours"]
+            if (
+                "split" in blackjack.options_possibles(main)
+                and solde >= partie["mises"][i]
+                and len(partie["mains"]) < 4
+            ):
+                solde -= partie["mises"][i]
+                sauvegarder_solde(solde)
+                carte = main.pop()
+                partie["mains"].append([carte])
+                partie["mises"].append(partie["mises"][i])
+                main.append(partie["paquet"].pop())
+                partie["mains"][-1].append(partie["paquet"].pop())
+                if carte["valeur"] == "As":
+                    partie["as_splittes"][i] = True
+                    partie["as_splittes"].append(True)
+                else:
+                    partie["as_splittes"][i] = False
+                    partie["as_splittes"].append(False)
+            else:
+                message = "split impossible"
+        while (
+            partie is not None
+            and partie["en_cours"] < len(partie["mains"])
+            and partie["as_splittes"][partie["en_cours"]] == True
+        ):
+            partie["en_cours"] += 1
+        if partie is not None and partie["en_cours"] >= len(partie["mains"]):
+            blackjack.jouer_croupier(partie["main_croupier"], partie["paquet"])
+            gain_total = 0
+            for i in range(len(partie["mains"])):
+                resultat = blackjack.resultat_main(
+                    partie["mains"][i], partie["main_croupier"]
+                )
+                gain = round(partie["mises"][i] * blackjack.GAIN[resultat], 2)
+                solde += gain
+                gain_total += gain
+            sauvegarder_solde(solde)
+            message = f"vous avez gagné un total de : {gain_total}"
+            session["main_croupier_final"] = partie["main_croupier"]
+            session["mains_final"] = partie["mains"]
+            session.pop("partie_blackjack")
+            parties.pop(partie_id)
+        session["message"] = message
+        return redirect(url_for("page_blackjack"))
+    options = None
+    if partie is not None:
+        options = blackjack.options_possibles(partie["mains"][partie["en_cours"]])
+    return render_template(
+        "blackjack.html",
+        solde=solde,
+        partie=partie,
+        main_croupier_final=main_croupier_final,
+        mains_final=mains_final,
+        options=options,
         message=message,
     )
 

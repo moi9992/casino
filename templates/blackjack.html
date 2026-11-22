@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack</title>
+</head>
+<body>
+    <h1>Bienvenue dans le blackjack</h1>
+    <p>Solde : {{ solde }}</p>
+
+    {% if partie is none %}
+
+    <form action="" method="post">
+        <input type="number" name="mise" placeholder="votre mise">
+        <button name="action" value="commencer">Miser</button>
+    </form>
+
+    {% else %}
+
+    <form action="" method="post">
+        {% for main in partie["mains"] %}
+        <p>Main : {% if loop.index0 == partie["en_cours"] %}← main en cours{% endif %}</p>
+            {% for carte in main %}
+            <p>
+                {{ carte["valeur"]}} de {{ carte["couleur"] }}
+            </p>
+            {% endfor %}
+        {% endfor %}
+        <p>
+            Carte actuelle du croupier : {{partie["main_croupier"][0]["valeur"]}} de {{partie["main_croupier"][0]["couleur"]}}
+        </p>
+        <button name="action" value="stop">Stop</button>
+        <button name="action" value="hit">Hit</button>
+        {% if "doubler" in options %}
+        <button name="action" value="doubler">Doubler</button>
+        {% endif %}
+        {% if "split" in options %}
+        <button name="action" value="split">Split</button>
+        {% endif %}
+    </form>
+
+    {% endif %} 
+
+    {% if main_croupier_final %}
+    <p>Main du croupier : </p>
+        {% for carte in main_croupier_final %}
+        <p>{{ carte["valeur"] }} de {{ carte["couleur"] }}</p>
+        {% endfor %}
+    {% endif %}
+
+    {% if mains_final %}
+        <p>Vos mains :</p>
+        {% for main in mains_final %}
+            <p>Main :</p>
+            {% for carte in main %}
+            <p>{{ carte["valeur"] }} de {{ carte["couleur"] }}</p>
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>

@@ -5,6 +5,21 @@ from portefeuille import charger_solde, demander_mise, peut_jouer, sauvegarder_s
 GAIN = {"blackjack": 2.5, "gagné": 2, "égalité": 1, "perdu": 0}
 
 
+def distribuer(paquet):
+    main_joueur = []
+    main_croupier = []
+
+    for i in range(2):
+        main_joueur.append(paquet.pop())
+        main_croupier.append(paquet.pop())
+    return main_joueur, main_croupier
+
+
+def jouer_croupier(main_croupier, paquet):
+    while points_main(main_croupier) < 17:
+        main_croupier.append(paquet.pop())
+
+
 def points_carte(carte):
     if carte["valeur"] in ["Valet", "Dame", "Roi"]:
         return 10
@@ -27,6 +42,41 @@ def points_main(main):
     return total
 
 
+def options_possibles(main):
+    options = ["hit", "stop"]
+    if len(main) == 2:
+        options.append("doubler")
+        if main[0]["valeur"] == main[1]["valeur"]:
+            options.append("split")
+    return options
+
+
+def resultat_main(main, main_croupier):
+    if points_main(main) > 21:
+        resultat = "perdu"
+    elif points_main(main_croupier) > 21 or points_main(main) > points_main(
+        main_croupier
+    ):
+        resultat = "gagné"
+    elif points_main(main) == points_main(main_croupier):
+        resultat = "égalité"
+    else:
+        resultat = "perdu"
+    return resultat
+
+
+def verifier_blackjacks(main_joueur, main_croupier):
+    if points_main(main_joueur) == 21 and points_main(main_croupier) == 21:
+        resultat = "égalité"
+    elif points_main(main_joueur) == 21:
+        resultat = "blackjack"
+    elif points_main(main_croupier) == 21:
+        resultat = "perdu"
+    else:
+        resultat = None
+    return resultat
+
+
 def jouer():
     solde = charger_solde()
 
@@ -40,31 +90,18 @@ def jouer():
             mise = demander_mise(solde)
             solde = solde - mise
             paquet = créer_paquet()
-
-            main_joueur = []
-            main_croupier = []
             partie_fini = False
 
-            for i in range(2):
-                main_joueur.append(paquet.pop())
-                main_croupier.append(paquet.pop())
+            main_joueur, main_croupier = distribuer(paquet)
 
             mains = [main_joueur]
             mises = [mise]
             as_splittes = [False]
 
-            if points_main(main_joueur) == 21 and points_main(main_croupier) == 21:
+            resultat = verifier_blackjacks(main_joueur, main_croupier)
+            if resultat is not None:
                 partie_fini = True
-                print("DOUBLE BLACKJACK, égalité")
-                resultat = "égalité"
-            elif points_main(main_joueur) == 21:
-                partie_fini = True
-                print("BLACKJACK, tu as gagné")
-                resultat = "blackjack"
-            elif points_main(main_croupier) == 21:
-                partie_fini = True
-                print("BLACKJACK du croupier, tu as perdu")
-                resultat = "perdu"
+                print(resultat)
             else:
                 i = 0
                 while i < len(mains):
@@ -77,11 +114,8 @@ def jouer():
                         if as_splittes[i] == True:
                             print("As splittés : une seule carte")
                             break
-                        options = ["hit", "stop"]
-                        if len(main) == 2:
-                            options.append("doubler")
-                            if main[0]["valeur"] == main[1]["valeur"]:
-                                options.append("split")
+
+                        options = options_possibles(main)
                         reponse = input(", ".join(options) + " : ").strip().lower()
 
                         if reponse == "hit":
@@ -134,27 +168,14 @@ def jouer():
 
                     i += 1
             if partie_fini == False:
-                while points_main(main_croupier) < 17:
-                    main_croupier.append(paquet.pop())
+                jouer_croupier(main_croupier, paquet)
                 print("main du croupier :", (points_main(main_croupier)))
                 afficher_main(main_croupier)
                 for i in range(len(mains)):
                     main = mains[i]
                     print("main : ", i + 1, points_main(main))
-                    if points_main(main) > 21:
-                        print("perdu")
-                        resultat = "perdu"
-                    elif points_main(main_croupier) > 21 or points_main(
-                        main
-                    ) > points_main(main_croupier):
-                        print("gagné")
-                        resultat = "gagné"
-                    elif points_main(main) == points_main(main_croupier):
-                        print("égalité")
-                        resultat = "égalité"
-                    else:
-                        print("perdu")
-                        resultat = "perdu"
+                    resultat = resultat_main(main, main_croupier)
+                    print(resultat)
 
                     gain = round(mises[i] * GAIN[resultat], 2)
                     solde += gain
