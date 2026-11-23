@@ -821,5 +821,15 @@ def page_mentions_legales():
     return render_template("mentions_legales.html")
 
 
+@app.route("/cgu")
+def page_cgu():
+    return render_template("cgu.html")
+
+
+@app.route("/confidentialite")
+def page_confidentialite():
+    return render_template("confidentialite.html")
+
+
 if __name__ == "__main__":
     app.run(debug=True)
