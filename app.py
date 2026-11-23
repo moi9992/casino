@@ -816,5 +816,10 @@ def page_recharger():
     )
 
 
+@app.route("/mentions-legales")
+def page_mentions_legales():
+    return render_template("mentions_legales.html")
+
+
 if __name__ == "__main__":
     app.run(debug=True)
