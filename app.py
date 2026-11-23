@@ -5,19 +5,20 @@ from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
 
 import baccarat
-import blackjack
 import bingo
+import blackjack
 import caribbean_stud
 import craps
 import crash
 import keno
 import machine_a_sous
 import mine
+import plus_ou_moins
+import paiement
 import roue_fortune
 import roulette
 import sic_bo
 import video_poker
-import plus_ou_moins
 from cartes import créer_paquet
 from portefeuille import charger_solde, sauvegarder_solde
 
@@ -774,6 +775,44 @@ def page_blackjack():
         mains_final=mains_final,
         options=options,
         message=message,
+    )
+
+
+@app.route("/recharger", methods=["GET", "POST"])
+def page_recharger():
+    message = session.pop("message", None)
+    solde = charger_solde()
+    if request.method == "POST":
+        numero = request.form.get("numero", "")
+        expiration = request.form.get("expiration", "")
+        cvc = request.form.get("cvc", "")
+        if not paiement.verifier_luhn(numero):
+            message = "numéro de la carte invalide"
+        elif not paiement.verifier_expiration(expiration):
+            message = "date d'expiration invalide"
+        elif not paiement.verifier_cvc(cvc):
+            message = "cvc invalide"
+        else:
+            pack = request.form.get("pack", "")
+            if pack in paiement.PACKS:
+                montant = paiement.PACKS[pack]
+            else:
+                try:
+                    montant = int(request.form.get("montant", ""))
+                    if montant < paiement.MONTANT_MIN or montant > paiement.MONTANT_MAX:
+                        message = "erreur de montant"
+                        montant = None
+                except ValueError:
+                    message = "erreur de montant"
+                    montant = None
+            if montant is not None:
+                solde += montant
+                sauvegarder_solde(solde)
+                message = f"recharge de {montant} crédit effectuer"
+        session["message"] = message
+        return redirect(url_for("page_recharger"))
+    return render_template(
+        "recharger.html", solde=solde, message=message, packs=paiement.PACKS
     )
 
 

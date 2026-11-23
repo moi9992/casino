@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recharger</title>
+</head>
+<body>
+    <h1>Bienvenue dans la recharge de fond</h1>
+    <p>Solde : {{ solde }}</p>
+    <form action="" method="post">
+        <input type="text" name="numero" placeholder="écrivez les numéro de votre carte">
+        <input type="text" name="expiration" placeholder="écrivez la date d'expiration">
+        <input type="text" name="cvc" placeholder="écrivez votre cvc">
+        <input type="number" name="montant" placeholder="min 1000 max 999millions">
+        <button>Recharger</button>
+        {% for nom, prix in packs.items() %}
+        <button name="pack" value="{{nom}}">{{nom}} {{prix}}</button>
+        {% endfor %}
+    </form>
+
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+
+    <a href="/">Retour à l'accueil</a>
+</body>
+</html>
