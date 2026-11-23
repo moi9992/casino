@@ -17,8 +17,8 @@ import roue_fortune
 import roulette
 import sic_bo
 import video_poker
+import plus_ou_moins
 from cartes import créer_paquet
-from plus_ou_moins import bon_pari, calculer_multiplicateur
 from portefeuille import charger_solde, sauvegarder_solde
 
 load_dotenv()
@@ -39,9 +39,10 @@ def accueil():
 def page_plus_ou_moins():
     message = session.pop("message", None)
     ancienne_carte = session.pop("ancienne_carte", None)
+    carte_perdante = session.pop("carte_perdante", None)
     solde = charger_solde()
-    if "carte_actuelle" not in session:
-        session["carte_actuelle"] = créer_paquet().pop()
+    partie_id = session.get("partie_plus_ou_moins")
+    partie = parties.get(partie_id)
     if request.method == "POST":
         if request.form.get("action") == "commencer":
             try:
@@ -49,46 +50,56 @@ def page_plus_ou_moins():
                 if mise >= 1 and mise <= solde:
                     solde -= mise
                     sauvegarder_solde(solde)
-                    session["gain"] = mise
-                    session["carte_actuelle"] = créer_paquet().pop()
+                    partie_id = secrets.token_hex(16)
+                    parties[partie_id] = {
+                        "carte_actuelle": créer_paquet().pop(),
+                        "gain": mise,
+                    }
+                    session["partie_plus_ou_moins"] = partie_id
                 else:
                     message = "mise invalide"
             except ValueError:
                 message = "mise invalide"
-        elif request.form.get("action") == "encaisser" and "gain" in session:
-            solde += session["gain"]
+        elif request.form.get("action") == "encaisser" and partie is not None:
+            solde += partie["gain"]
             sauvegarder_solde(solde)
             message = "encaissé"
-            session.pop("gain")
-        elif "pari" in request.form and "gain" in session:
+            session.pop("partie_plus_ou_moins")
+            parties.pop(partie_id)
+        elif "pari" in request.form and partie is not None:
             pari = request.form["pari"]
-            multiplicateur = calculer_multiplicateur(session["carte_actuelle"], pari)
+            multiplicateur = plus_ou_moins.calculer_multiplicateur(
+                partie["carte_actuelle"], pari
+            )
             if multiplicateur == 0:
                 message = "pari impossible"
             else:
                 nouvelle_carte = créer_paquet().pop()
-                if bon_pari(session["carte_actuelle"], nouvelle_carte, pari):
+                if plus_ou_moins.bon_pari(
+                    partie["carte_actuelle"], nouvelle_carte, pari
+                ):
                     message = "gagné"
-                    session["gain"] = round(
-                        session["gain"] * multiplicateur,
+                    partie["gain"] = round(
+                        partie["gain"] * multiplicateur,
                         2,
                     )
                 else:
                     message = "perdu"
-                    session.pop("gain")
-                ancienne_carte = session["carte_actuelle"]
-                session["carte_actuelle"] = nouvelle_carte
+                    session["carte_perdante"] = nouvelle_carte
+                    session.pop("partie_plus_ou_moins")
+                    parties.pop(partie_id)
+                ancienne_carte = partie["carte_actuelle"]
+                partie["carte_actuelle"] = nouvelle_carte
         session["message"] = message
         session["ancienne_carte"] = ancienne_carte
         return redirect(url_for("page_plus_ou_moins"))
     return render_template(
         "plus_ou_moins.html",
         solde=solde,
-        carte=session["carte_actuelle"],
         message=message,
         ancienne_carte=ancienne_carte,
-        en_jeu="gain" in session,
-        gain=session.get("gain"),
+        carte_perdante=carte_perdante,
+        partie=partie,
     )
 
 

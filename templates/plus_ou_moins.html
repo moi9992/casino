@@ -9,9 +9,9 @@
     <h1>Bienvenue dans le plus ou moins</h1>
     <p>Solde : {{ solde }}</p>
 
-    {% if en_jeu %}
-    <p>Carte actuelle : {{ carte["valeur"] }} de {{ carte["couleur"] }}</p>
-    <p>Gain en jeu : {{ gain }}</p>
+    {% if partie is not none %}
+    <p>Carte actuelle : {{ partie["carte_actuelle"]["valeur"] }} de {{ partie["carte_actuelle"]["couleur"] }}</p>
+    <p>Gain en jeu : {{ partie["gain"] }}</p>
     <form action="" method="post">
         <button name="pari" value="haut">Haut</button>
         <button name="pari" value="bas">Bas</button>
@@ -27,6 +27,9 @@
     {% if message %}
         {% if ancienne_carte %}
         <p>Ancienne carte : {{ ancienne_carte["valeur"] }} de {{ ancienne_carte["couleur"] }}</p>
+        {% endif %}
+            {% if carte_perdante %}
+        <p>Nouvelle carte : {{ carte_perdante["valeur"] }} de {{ carte_perdante["couleur"] }}</p>
         {% endif %}
     <p>{{ message }}</p>
     {% endif %}
